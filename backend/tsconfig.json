@@ -1,0 +1,69 @@
+{
+  "compilerOptions": {
+    // Základní nastavení
+    "target": "ES2020",                    // Verze JS na kterou kompilovat
+    "module": "commonjs",                  // Typ modulů (Node.js používá CommonJS)
+    "lib": ["ES2020", "DOM"],
+    
+                         // Knihovny které má TS znát
+    
+    // Výstupní složka
+    "outDir": "./dist",                    // Kam ukládat zkompilované JS soubory
+    "rootDir": "./src",                    // Kde jsou zdrojové TS soubory
+    
+    // Rozlišování modulů
+    "moduleResolution": "bundler",         // Moderní způsob hledání modulů
+    "paths": {                             // Aliasy pro importy (relativní k rootDir)
+      "@/*": ["./src/*"],
+      "@models/*": ["./src/models/*"],
+      "@controllers/*": ["./src/controllers/*"],
+      "@middleware/*": ["./src/middleware/*"],
+      "@routes/*": ["./src/routes/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@config/*": ["./src/config/*"],
+      "@types/*": ["./src/types/*"]
+    },
+    
+    // Striktní kontroly (pro kvalitní kód)
+    "strict": true,                        // Zapne všechny striktní kontroly
+    "noImplicitAny": true,                 // Zakáže implicitní any typ
+    "strictNullChecks": true,              // Kontrola null/undefined
+    "strictFunctionTypes": true,           // Striktní kontrola funkcí
+    "noImplicitReturns": true,             // Funkce musí mít return ve všech větvích
+    "noFallthroughCasesInSwitch": true,    // Switch case musí mít break
+    "noUncheckedIndexedAccess": true,      // Kontrola přístupu k arrays/objects
+    
+    // Užitečné funkce
+    "resolveJsonModule": true,             // Možnost importovat JSON soubory
+    "allowSyntheticDefaultImports": true,  // import React from 'react'
+    "esModuleInterop": true,               // Kompatibilita s ES moduly
+    "skipLibCheck": true,                  // Přeskočí kontrolu .d.ts souborů (rychlejší)
+    "forceConsistentCasingInFileNames": true, // Konzistentní názvy souborů
+    
+    // Debugging
+    "sourceMap": true,                     // Generuje source mapy pro debugging
+    "removeComments": false,               // Zachová komentáře v JS výstupu
+    
+    // Experimentální funkce
+    "experimentalDecorators": true,        // Pro decoratory (budeme používat s Mongoose)
+    "emitDecoratorMetadata": true
+  },
+  
+  // Jaké soubory zahrnout
+  "include": [
+    "src/**/*"                             // Všechny soubory ve src/
+  ],
+  
+  // Jaké soubory vyloučit
+  "exclude": [
+    "node_modules",                        // node_modules složka
+    "dist",                                // Výstupní složka
+    "**/*.test.ts",                        // Test soubory
+    "**/*.spec.ts"
+  ],
+  
+  // ts-node konfigurace (pro development)
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]  // Umožní používat path aliasy
+  }
+}

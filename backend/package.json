@@ -1,0 +1,53 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/server.ts",
+    "dev:debug": "nodemon --inspect src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "postbuild": "copyfiles -u 1 src/**/*.json dist/",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "test": "jest",
+    "db:seed": "ts-node --require tsconfig-paths/register src/scripts/seed.ts",
+    "db:clear": "ts-node --require tsconfig-paths/register src/scripts/seed.ts clear",
+    "scrape": "ts-node src/scripts/scrape.ts",
+    "scrape:dev": "nodemon src/scripts/scrape.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
+    "axios": "^1.13.2",
+    "cheerio": "^1.1.2",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "mongoose": "^8.19.1",
+    "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
+    "puppeteer": "^24.29.0",
+    "winston": "^3.18.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/morgan": "^1.9.10",
+    "@types/node-cron": "^3.0.11",
+    "@types/winston": "^2.4.4",
+    "copyfiles": "^2.4.1",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0"
+  }
+}
