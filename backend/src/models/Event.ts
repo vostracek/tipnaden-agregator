@@ -1,22 +1,25 @@
 import mongoose, { Schema, model } from 'mongoose';
 import { IEvent, IEventDateTime, IEventPricing, IEventMedia, IEventLinks, IEventOrganizer, IEventSource, IEventSEO, IEventStats, EventStatus } from '@/types';
+import { logger } from '@/utils/logger';
+
+// ============================================
+// SUB-SCHEMAS
+// ============================================
 
 // Sub-schema pro date/time
 const EventDateTimeSchema = new Schema<IEventDateTime>({
   start: {
     type: Date,
     required: [true, 'Start date is required'],
-    validate: {
-      validator: function(date: Date) {
-        return date >= new Date();
-      },
-      message: 'Start date cannot be in the past'
-    }
+    // ✅ OPRAVA: Odebrána přísná validace pro minulost
+    // Umožňuje import historických eventů a seed data
+    // Validace se provádí na API úrovni podle context (create/import/seed)
   },
   end: {
     type: Date,
     validate: {
       validator: function(this: any, date: Date) {
+        // End musí být po start, pokud je zadán
         return !date || date >= this.start;
       },
       message: 'End date must be after start date'
@@ -197,7 +200,10 @@ const EventStatsSchema = new Schema<IEventStats>({
   }
 }, { _id: false });
 
-// Hlavní Event schema
+// ============================================
+// MAIN EVENT SCHEMA
+// ============================================
+
 const EventSchema = new Schema<IEvent>({
   title: {
     type: String,
@@ -309,9 +315,11 @@ const EventSchema = new Schema<IEvent>({
   toObject: { virtuals: true }
 });
 
-// ============= INDEXES =============
+// ============================================
+// INDEXES
+// ============================================
 
-// Compound indexes pro optimální výkon
+// Compound indexes pro optimální výkon queries
 EventSchema.index({ 'dateTime.start': 1, status: 1, isPublished: 1 });
 EventSchema.index({ category: 1, 'dateTime.start': 1 });
 EventSchema.index({ location: 1, 'dateTime.start': 1 });
@@ -324,13 +332,15 @@ EventSchema.index({
   tags: 'text'
 }, {
   weights: {
-    title: 10,
-    tags: 5,
-    description: 1
+    title: 10,      // Největší váha pro title
+    tags: 5,        // Střední váha pro tags
+    description: 1  // Nejmenší váha pro description
   }
 });
 
-// ============= VIRTUAL FIELDS =============
+// ============================================
+// VIRTUAL FIELDS
+// ============================================
 
 // Virtual pro URL události
 EventSchema.virtual('url').get(function() {
@@ -360,125 +370,18 @@ EventSchema.virtual('formattedPrice').get(function() {
   if (this.pricing.priceTo && this.pricing.priceTo !== this.pricing.priceFrom) {
     return `${this.pricing.priceFrom} - ${this.pricing.priceTo} ${currency}`;
   }
+  
   return `${this.pricing.priceFrom} ${currency}`;
 });
 
-// ============= STATIC METHODS =============
+// ============================================
+// MIDDLEWARE
+// ============================================
 
-// Vyhledání nadcházejících událostí
-EventSchema.statics.findUpcoming = function(limit = 50) {
-  return this.find({
-    'dateTime.start': { $gte: new Date() },
-    status: 'active',
-    isPublished: true
-  })
-  .populate('category location')
-  .sort({ 'dateTime.start': 1 })
-  .limit(limit);
-};
-
-// Vyhledání featured událostí
-EventSchema.statics.findFeatured = function(limit = 10) {
-  return this.find({
-    isFeatured: true,
-    'dateTime.start': { $gte: new Date() },
-    status: 'active',
-    isPublished: true
-  })
-  .populate('category location')
-  .sort({ 'dateTime.start': 1 })
-  .limit(limit);
-};
-
-// Vyhledání podle kategorie
-EventSchema.statics.findByCategory = function(categoryId: any, limit = 50) {
-  return this.find({
-    category: categoryId,
-    'dateTime.start': { $gte: new Date() },
-    status: 'active',
-    isPublished: true
-  })
-  .populate('category location')
-  .sort({ 'dateTime.start': 1 })
-  .limit(limit);
-};
-
-// Fulltextové vyhledávání
-EventSchema.statics.searchEvents = function(searchTerm: string, filters: any = {}) {
-  const query: any = {
-    $text: { $search: searchTerm },
-    'dateTime.start': { $gte: new Date() },
-    status: 'active',
-    isPublished: true,
-    ...filters
-  };
-  
-  return this.find(query)
-    .populate('category location')
-    .sort({ score: { $meta: 'textScore' }, 'dateTime.start': 1 })
-    .limit(50);
-};
-
-// Vyhledání podle lokace
-EventSchema.statics.findByLocation = function(locationId: any, limit = 50) {
-  return this.find({
-    location: locationId,
-    'dateTime.start': { $gte: new Date() },
-    status: 'active',
-    isPublished: true
-  })
-  .populate('category location')
-  .sort({ 'dateTime.start': 1 })
-  .limit(limit);
-};
-
-// ============= INSTANCE METHODS =============
-
-// Instance metoda pro zvýšení počtu zobrazení
-EventSchema.methods.incrementViews = function() {
-  this.stats.views += 1;
-  return this.save();
-};
-
-// Instance metoda pro zvýšení počtu oblíbených
-EventSchema.methods.incrementFavorites = function() {
-  this.stats.favorites += 1;
-  return this.save();
-};
-
-// Instance metoda pro snížení počtu oblíbených
-EventSchema.methods.decrementFavorites = function() {
-  if (this.stats.favorites > 0) {
-    this.stats.favorites -= 1;
-  }
-  return this.save();
-};
-
-// Instance metoda pro zvýšení počtu sdílení
-EventSchema.methods.incrementShares = function() {
-  this.stats.shares += 1;
-  return this.save();
-};
-
-// Instance metoda pro publikování události
-EventSchema.methods.publish = function() {
-  this.isPublished = true;
-  this.publishedAt = new Date();
-  return this.save();
-};
-
-// Instance metoda pro zrušení publikování
-EventSchema.methods.unpublish = function() {
-  this.isPublished = false;
-  this.publishedAt = undefined;
-  return this.save();
-};
-
-// ============= MIDDLEWARE =============
-
-// Pre-save middleware pro automatické generování slug
+// Pre-save middleware pro auto-generování SEO polí
 EventSchema.pre('save', function(next) {
-  if (this.isModified('title') && (!this.seo.slug || this.isNew)) {
+  // Auto-generate slug pokud není
+  if (this.isModified('title') && !this.seo.slug) {
     const baseSlug = this.title
       .toLowerCase()
       .trim()
@@ -511,7 +414,7 @@ EventSchema.pre('save', function(next) {
   next();
 });
 
-// Pre-save middleware pro validaci dat
+// Pre-save middleware pro validaci pricing konzistence
 EventSchema.pre('save', function(next) {
   // Kontrola pricing konzistence
   if (!this.pricing.isFree && !this.pricing.priceFrom) {
@@ -520,6 +423,7 @@ EventSchema.pre('save', function(next) {
     return next(error);
   }
   
+  // Pokud je zdarma, vynuluj ceny
   if (this.pricing.isFree) {
     this.pricing.priceFrom = undefined;
     this.pricing.priceTo = undefined;
@@ -528,16 +432,88 @@ EventSchema.pre('save', function(next) {
   next();
 });
 
-// Post-save middleware pro aktualizaci related dokumentů
+// ✅ OPRAVA: Post-save middleware s logger místo console.error
 EventSchema.post('save', async function(doc: any) {
   try {
-    // Aktualizuj category eventCount virtual
-    // Aktualizuj location eventCount virtual
-    // Toto se dělá automaticky přes virtuals
+    // Aktualizuj category eventCount virtual (automaticky přes populate)
+    // Aktualizuj location eventCount virtual (automaticky přes populate)
+    // Případně zde můžeš přidat další post-save akce:
+    // - Notifikace
+    // - Cache invalidation
+    // - Webhook calls
+    
+    logger.debug('Event saved successfully', { 
+      eventId: doc._id, 
+      title: doc.title 
+    });
   } catch (error) {
-    console.error('Error in post-save middleware:', error);
+    // ✅ OPRAVA: Použití logger místo console.error
+    logger.error('Error in post-save middleware', { 
+      error,
+      eventId: doc._id 
+    });
   }
 });
 
-// Export modelu
+// ============================================
+// STATIC METHODS
+// ============================================
+
+// Statická metoda pro vyhledání upcoming eventů
+EventSchema.statics.findUpcoming = function(limit = 10) {
+  return this.find({
+    'dateTime.start': { $gte: new Date() },
+    isPublished: true,
+    status: 'active'
+  })
+  .sort({ 'dateTime.start': 1 })
+  .limit(limit)
+  .populate('category location');
+};
+
+// Statická metoda pro featured events
+EventSchema.statics.findFeatured = function(limit = 6) {
+  return this.find({
+    isFeatured: true,
+    isPublished: true,
+    status: 'active',
+    'dateTime.start': { $gte: new Date() }
+  })
+  .sort({ 'dateTime.start': 1 })
+  .limit(limit)
+  .populate('category location');
+};
+
+// Statická metoda pro vyhledání podle slug
+EventSchema.statics.findBySlug = function(slug: string) {
+  return this.findOne({ 'seo.slug': slug })
+    .populate('category location');
+};
+
+// ============================================
+// INSTANCE METHODS
+// ============================================
+
+// Instance metoda pro increment view count
+EventSchema.methods.incrementViews = function() {
+  this.stats.views += 1;
+  return this.save();
+};
+
+// Instance metoda pro increment favorites
+EventSchema.methods.incrementFavorites = function() {
+  this.stats.favorites += 1;
+  return this.save();
+};
+
+// Instance metoda pro increment shares
+EventSchema.methods.incrementShares = function() {
+  this.stats.shares += 1;
+  return this.save();
+};
+
+// ============================================
+// EXPORT
+// ============================================
+
 export const Event = model<IEvent>('Event', EventSchema);

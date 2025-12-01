@@ -1,7 +1,8 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "TipNaDen.cz Backend API - Node.js + Express + MongoDB",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
     "dev:debug": "nodemon --inspect src/server.ts",
@@ -15,13 +16,23 @@
     "test": "jest",
     "db:seed": "ts-node --require tsconfig-paths/register src/scripts/seed.ts",
     "db:clear": "ts-node --require tsconfig-paths/register src/scripts/seed.ts clear",
-    "scrape": "ts-node src/scripts/scrape.ts",
+    "scrape": "ts-node --require tsconfig-paths/register src/scripts/scrape.ts",
     "scrape:dev": "nodemon src/scripts/scrape.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": [
+    "events",
+    "api",
+    "express",
+    "mongodb",
+    "typescript",
+    "rest-api"
+  ],
+  "author": "TipNaDen.cz Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.13.23",
     "axios": "^1.13.2",
@@ -42,12 +53,15 @@
   "devDependencies": {
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.21",
     "@types/morgan": "^1.9.10",
+    "@types/node": "^20.11.0",
     "@types/node-cron": "^3.0.11",
-    "@types/winston": "^2.4.4",
     "copyfiles": "^2.4.1",
+    "nodemon": "^3.0.3",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.3.3"
   }
 }
